@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('blocks/meta.ejs') -%>
+    <title>videos</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <%- include('blocks/header.ejs') -%>
+
+    <div class="container-fluid">
+        <div class="row text-center">
+            <div class="col-12 col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12" >
+                <video id="peerVideo"></video>
+            </div>
+        </div>
+        <div class="row text-center">
+            <div class="col-12 col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12" id="lv">
+                <video id="localVideo" style="z-index: 99;" autoplay playinsline class='mx-auto' muted loop width="640" height="480"></video>
+            </div>
+        </div>
+    </div>
+    
+    <%- include('blocks/footer.ejs') -%> 
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/face-api.min.js"></script>
+    <script>
+        const constraints = {audio: true, video: {width: 480}}
+        const localVideoInput = document.getElementById("localVideo")
+        const lv = document.getElementById("lv")
+        const getUserMedia = navigator.mediaDevices.getUserMedia(constraints);
+
+        Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+            faceapi.nets.faceExpressionNet.loadFromUri('/models')
+        ]).then(start)
+
+        function start(){
+            getUserMedia.then((mediaStream) => localVideoInput.srcObject = mediaStream)
+        }
+        
+        localVideoInput.addEventListener('playing', async () =>{
+            const canvas = faceapi.createCanvasFromMedia(localVideoInput)
+            lv.append(canvas)
+            const displaySize = { width: localVideoInput.width, height: localVideoInput.height }
+            faceapi.matchDimensions(canvas, displaySize)
+            setInterval(async() => {
+                const detections = await faceapi.detectAllFaces(localVideoInput, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions()
+                const resizedDetections = faceapi.resizeResults(detections, displaySize)
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+                faceapi.draw.drawDetections(canvas, resizedDetections)
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetections)
+                faceapi.draw.drawFaceExpressions(canvas, resizedDetections)
+            }, 100)
+        })
+    </script>
+</body>
+</html>

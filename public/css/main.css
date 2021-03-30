@@ -1,0 +1,9 @@
+@media(max-width:767px){
+    video{
+        width: 80%;
+    }
+}
+
+canvas {
+    position: absolute;
+}
